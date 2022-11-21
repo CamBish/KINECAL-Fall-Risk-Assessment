@@ -1,4 +1,12 @@
 import xgboost as xgb
+import tensorflow as tf
+
+import keras.layers.activation
+from keras.models import Model
+from keras.layers import Dense, Dropout, Activation, Flatten, Input
+import keras
+
+
 
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn import svm
@@ -86,14 +94,22 @@ def tune_xgboost(X, y, param_grid: dict, cv: int = 2, modelDir: str = "models/",
     return outPath
     
 
-def train_svm(X, y, params, modelDir = "models/", modelName = "svm"):
-    
+def train_svm(X, y, params: dict, modelDir: str = "models/", modelName: str = "svm"):
+    """_summary_
+
+    Args:
+        X (_type_): _description_
+        y (_type_): _description_
+        params (dict): _description_
+        modelDir (str, optional): _description_. Defaults to "models/".
+        modelName (str, optional): _description_. Defaults to "svm".
+
+    Returns:
+        svc: trained SVM model for classification
+    """      
     #check if model directory exists, if not create it
     if not os.path.exists(modelDir):
         os.makedirs(modelDir)
-        
-        
-    outPath = modelDir + modelName + '.pkl'
     
     #split data into train and test sets
     X_train, X_vali, y_train, y_vali = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -107,11 +123,7 @@ def train_svm(X, y, params, modelDir = "models/", modelName = "svm"):
               eval_metric=eval, 
               verbose=True)
     
-    #save model using pickle
-    dump(svc, open(outPath, 'wb'))
-    
-    print("Model saved to: " + outPath)
-    return outPath
+    return svc
 
 
 def tune_svm(X, y, param_grid: dict, cv: int = 2, modelDir: str = "models/", modelName: str = "tunedSVM") -> str:
@@ -126,7 +138,7 @@ def tune_svm(X, y, param_grid: dict, cv: int = 2, modelDir: str = "models/", mod
         modelName (str, optional): name of fine-tuned model. Defaults to "tunedSVM".
 
     Returns:
-        str: path to the saved model
+        best_model: best performing SVM classifier model from GridSearchCV
     """  
     #check if model directory exists, if not create it
     if not os.path.exists(modelDir):
@@ -147,11 +159,61 @@ def tune_svm(X, y, param_grid: dict, cv: int = 2, modelDir: str = "models/", mod
     
     # Save the best model
     best_model = grid.best_estimator_
-    print(outPath)
-    #save best model using pickle
-    dump(best_model, open(outPath, 'wb'))
     
-    return outPath
+    return best_model
 
+def generate_deep_model(input_shape: int, output_shape: int, 
+                        model_width:int = 128, hid_act_fxn: str = "relu", 
+                        final_act_fxn: str = "sigmoid", summary: bool = True) -> tf.keras.Model:
+    """Generate deep neural network model for classification.
 
+    Args:
+        input_shape (int): number of features in input data
+        output_shape (int): number of classes in output data
+        model_width (int, optional): Model width parameter. Defaults to 128.
+        inner_act_fxn (str, optional): Activation function for hidden layers. Defaults to "relu".
+        final_act_fxn (str, optional): Activation function for output layer. Defaults to "sigmoid".
+        summary (bool, optional): Turn on model summary. Defaults to True.
 
+    Returns:
+        tf.keras.Model: deep neural network model for classification
+    """       
+    
+    ip = Input(shape=input_shape)
+    
+    x = Dense(model_width)(ip)
+    
+    x = Activation(hid_act_fxn)(x)
+    
+    x = Dense(model_width)(x)
+    
+    x = Activation(hid_act_fxn)(x)
+    
+    x = Dense(model_width)(x)
+    
+    x = Activation(hid_act_fxn)(x)
+    
+    out = Dense(output_shape, activation=final_act_fxn)(x)
+    
+    model = Model(ip, out)
+    
+    if summary:
+        model.summary()
+    
+    return model
+
+def train_model(model: keras.models.Model, x_train, y_train, optimizer: str = "adam", 
+                loss: str = "binary_crossentropy", metrics: list = ["accuracy"], 
+                epochs: int = 10, batch_size: int = 32, validation_split: float = 0.2, 
+                verbose: int = 1) -> keras.models.Model:
+    
+    callbacks = [
+        keras.callbacks.ModelCheckpoint(
+            "best_model.h5", save_best_only=True, monitor="val_loss"
+        ),
+        keras.callbacks.ReduceLROnPlateau(
+            monitor="val_loss", factor=0.5, patience=20, min_lr=1e-6
+        ),
+        keras.callbacks.EarlyStopping(monitor="val_loss", patience=50, verbose=1),
+    ]
+    model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
