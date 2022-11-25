@@ -109,16 +109,18 @@ def train_svm(X, y, params: dict, modelDir: str = "models/", modelName: str = "s
         os.makedirs(modelDir)
     
     #split data into train and test sets
-    X_train, X_vali, y_train, y_vali = train_test_split(X, y, test_size=0.2, random_state=42)
+    #X_train, X_vali, y_train, y_vali = train_test_split(X, y, test_size=0.2, random_state=42)
     
     svc = svm.SVC(**params)
     
     print("Training SVM model...")
     
-    svc.fit(X_train, y_train, 
-              eval_set=[(X_train, y_train), (X_vali, y_vali)], 
-              eval_metric=eval, 
-              verbose=True)
+    svc.fit(X, y)
+
+    #Optional Additional parameters
+    #   eval_set=[(X_train, y_train), (X_vali, y_vali)], 
+    #   eval_metric=eval, 
+    #   verbose=True
     
     return svc
 
