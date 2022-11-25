@@ -160,22 +160,22 @@ def generate_deep_model(input_shape: int, output_shape: int,
     
     return model
 
-def train_model_callbacks(model: keras.models.Model, X, y, optimizer: str = "adam", 
-                loss: str = "binary_crossentropy", metrics: list = ["accuracy"], 
-                epochs: int = 10, batch_size: int = 32, validation_split: float = 0.2, 
-                verbose: int = 1) -> keras.models.Model:
+def train_model_callbacks(model: keras.models.Model, X, y, optimizer: tf.keras.optimizers = tf.keras.optimizers.Adam(), 
+                          lr: float = 0.5, loss: str = "binary_crossentropy", metrics: list = ["accuracy"], 
+                          epochs: int = 10, batch_size: int = 32, validation_split: float = 0.2, 
+                          verbose: int = 1, monitor: str = 'val_loss') -> keras.models.Model:
     
     callbacks = [
         keras.callbacks.ModelCheckpoint(
-            "best_model.h5", save_best_only=True, monitor="val_loss"
+            "best_model.h5", save_best_only=True, monitor=monitor
         ),
         keras.callbacks.ReduceLROnPlateau(
-            monitor="val_loss", factor=0.5, patience=20, min_lr=1e-6
+            monitor=monitor, factor=0.5, patience=20, min_lr=1e-6
         ),
         keras.callbacks.EarlyStopping(monitor="val_loss", patience=50, verbose=1),
     ]
     
-    model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+    model.compile(optimizer=optimizer(learning_rate=lr), loss=loss, metrics=metrics)
     
     model.fit(X, y, epochs=epochs, 
                 batch_size=batch_size, 
