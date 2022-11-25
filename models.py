@@ -3,36 +3,25 @@ import tensorflow as tf
 
 import keras.layers.activation
 from keras.models import Model
-from keras.layers import Dense, Dropout, Activation, Flatten, Input
+from keras.layers import Dense, Dropout, Activation, Input
 import keras
 
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn import svm
 from multiprocessing import cpu_count
-import os
 
-def train_xgboost(X, y, param, eval= "logloss", modelDir = "models/", modelName = "xgboost"):
+
+def train_xgboost(X, y, param, eval= "logloss") -> xgb.XGBClassifier:
     """Train a XGBoost model on provided data using sklearn API.
 
     Args:
         data (pd.DataFrame): input data in the form of a pandas dataframe
         param (dict): dictionary of parameters for XGBoost
         eval (str): evaluation metric for XGBoost
-        modelDir (str): directory to save the model
-        modelName (str): name of the model for saving
     
     Returns:
-        str: path to the saved model
+        xgb.XGBClassifier: trained XGBoost model
     """
-    #check if model directory exists, if not create it
-    if not os.path.exists(modelDir):
-        os.makedirs(modelDir)
-        
-    #create output path
-    outPath = modelDir + modelName + '.json'
-    
-    #split data into train and test sets
-    X_train, X_vali, y_train, y_vali = train_test_split(X, y, test_size=0.2, random_state=42)
     
     #create XGBoost model from parameters
     model = xgb.XGBClassifier(**param, tree_method="gpu_hist", validate_parameters=True, n_jobs=cpu_count())
@@ -40,19 +29,12 @@ def train_xgboost(X, y, param, eval= "logloss", modelDir = "models/", modelName 
     print("Training XGBoost model...")
     
     #train model
-    model.fit(X_train, y_train, 
-              eval_set=[(X_train, y_train), (X_vali, y_vali)], 
-              eval_metric=eval, 
-              verbose=True)
+    model.fit(X, y, eval_metric=eval)
     
-    #save model
-    model.save_model(outPath)
-    
-    print("Model saved to: " + outPath)
-    return outPath
+    return model
 
 
-def tune_xgboost(X, y, param_grid: dict, cv: int = 2, modelDir: str = "models/", modelName: str = "tunedXGBoost") -> str:
+def tune_xgboost(X, y, param_grid: dict, cv: int = 2) -> xgb.XGBClassifier:
     """Tune XGBoost model hyperparameters using GridSearchCV and sklearn API.
 
     Args:
@@ -65,14 +47,7 @@ def tune_xgboost(X, y, param_grid: dict, cv: int = 2, modelDir: str = "models/",
 
     Returns:
         str: path to the saved model
-    """  
-    #check if model directory exists, if not create it
-    if not os.path.exists(modelDir):
-        os.makedirs(modelDir)
-    
-    #create output path
-    outPath = modelDir + modelName + '.json'
-    
+    """
     #create XGBoost model for tuning
     xgb_model = xgb.XGBClassifier(tree_method="gpu_hist",validate_parameters=True, n_jobs=cpu_count())
     
@@ -85,13 +60,11 @@ def tune_xgboost(X, y, param_grid: dict, cv: int = 2, modelDir: str = "models/",
     
     # Save the best model
     best_model = grid.best_estimator_
-    print(outPath)
-    best_model.save_model(outPath)
     
-    return outPath
+    return best_model
     
 
-def train_svm(X, y, params: dict, modelDir: str = "models/", modelName: str = "svm"):
+def train_svm(X, y, params: dict) -> svm.SVC:
     """_summary_
 
     Args:
@@ -103,14 +76,7 @@ def train_svm(X, y, params: dict, modelDir: str = "models/", modelName: str = "s
 
     Returns:
         svc: trained SVM model for classification
-    """      
-    #check if model directory exists, if not create it
-    if not os.path.exists(modelDir):
-        os.makedirs(modelDir)
-    
-    #split data into train and test sets
-    #X_train, X_vali, y_train, y_vali = train_test_split(X, y, test_size=0.2, random_state=42)
-    
+    """       
     svc = svm.SVC(**params)
     
     print("Training SVM model...")
@@ -125,7 +91,7 @@ def train_svm(X, y, params: dict, modelDir: str = "models/", modelName: str = "s
     return svc
 
 
-def tune_svm(X, y, param_grid: dict, cv: int = 2, modelDir: str = "models/", modelName: str = "tunedSVM") -> str:
+def tune_svm(X, y, param_grid: dict, cv: int = 2) -> svm.SVC:
     """Tune SVM model hyperparameters using GridSearchCV and sklearn API.
 
     Args:
@@ -139,13 +105,6 @@ def tune_svm(X, y, param_grid: dict, cv: int = 2, modelDir: str = "models/", mod
     Returns:
         best_model: best performing SVM classifier model from GridSearchCV
     """  
-    #check if model directory exists, if not create it
-    if not os.path.exists(modelDir):
-        os.makedirs(modelDir)
-    
-    #create output path
-    outPath = modelDir + modelName + '.pkl'
-    
     #create SVM model for tuning
     svm_model = svm.SVC()
     
@@ -201,7 +160,7 @@ def generate_deep_model(input_shape: int, output_shape: int,
     
     return model
 
-def train_model(model: keras.models.Model, x_train, y_train, optimizer: str = "adam", 
+def train_model_callbacks(model: keras.models.Model, X, y, optimizer: str = "adam", 
                 loss: str = "binary_crossentropy", metrics: list = ["accuracy"], 
                 epochs: int = 10, batch_size: int = 32, validation_split: float = 0.2, 
                 verbose: int = 1) -> keras.models.Model:
@@ -215,4 +174,12 @@ def train_model(model: keras.models.Model, x_train, y_train, optimizer: str = "a
         ),
         keras.callbacks.EarlyStopping(monitor="val_loss", patience=50, verbose=1),
     ]
+    
     model.compile(optimizer=optimizer, loss=loss, metrics=metrics)
+    
+    model.fit(X, y, epochs=epochs, 
+                batch_size=batch_size, 
+                callbacks=callbacks,
+                validation_split=validation_split,
+                verbose=verbose
+            )
