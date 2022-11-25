@@ -6,13 +6,10 @@ from keras.models import Model
 from keras.layers import Dense, Dropout, Activation, Flatten, Input
 import keras
 
-
-
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn import svm
 from multiprocessing import cpu_count
 import os
-from pickle import dump
 
 def train_xgboost(X, y, param, eval= "logloss", modelDir = "models/", modelName = "xgboost"):
     """Train a XGBoost model on provided data using sklearn API.
