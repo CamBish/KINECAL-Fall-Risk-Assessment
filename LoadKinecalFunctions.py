@@ -111,4 +111,28 @@ def datasetNormalization (x_df):
     x_df = x_df - mean
     x_df = x_df / variance
     return x_df
-    
+
+def binaryLabelRemapping (y_df, singleFallerBool):
+    """ Remaps the groups column of the y dataframe to a column called binary groups consisting of faller and non-fallers
+
+    Args:
+        y_df (pdf.Dataframe): Dataframe consisting of subject meta data and labels
+        singleFallerBool: Bool to determine if the single fallers group should be treated as fallers or non-fallers, True -> Faller : False -> Non-Faller
+
+    Returns:
+        y_df: Dataframe consisting of of subject meta data and labels with remapped binary labels
+    """
+    if (singleFallerBool):
+        class_remap_Binary = {'HA': 'Non-Faller',
+                'NF': 'Non-Faller',
+                'FHs': 'Faller',
+                'FHm': 'Faller'
+                    } 
+    else:
+        class_remap_Binary = {'HA': 'Non-Faller',
+                'NF': 'Non-Faller',
+                'FHs': 'Non-Faller',
+                'FHm': 'Faller'
+                    } 
+    y_df['label_binary'] = y_df['group'].apply(lambda x: class_remap_Binary[x] if x in class_remap_Binary else x)
+    return y_df
