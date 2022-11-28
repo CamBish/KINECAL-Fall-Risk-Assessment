@@ -34,7 +34,7 @@ def train_xgboost(X, y, param, eval= "logloss") -> xgb.XGBClassifier:
     return model
 
 
-def tune_xgboost(X, y, param_grid: dict, cv: int = 2) -> xgb.XGBClassifier:
+def tune_xgboost(X, y, param_grid: dict, cv: int = 2, verbose: int = 1) -> xgb.XGBClassifier:
     """Tune XGBoost model hyperparameters using GridSearchCV and sklearn API.
 
     Args:
@@ -51,7 +51,7 @@ def tune_xgboost(X, y, param_grid: dict, cv: int = 2) -> xgb.XGBClassifier:
     #create XGBoost model for tuning
     xgb_model = xgb.XGBClassifier(tree_method="gpu_hist",validate_parameters=True, n_jobs=cpu_count())
     
-    grid = GridSearchCV(xgb_model, param_grid=param_grid, cv=cv, verbose=1, return_train_score=True)
+    grid = GridSearchCV(xgb_model, param_grid=param_grid, cv=cv, verbose=verbose, return_train_score=True)
     grid.fit(X, y)
     
     # Print the best parameters and score
@@ -99,8 +99,6 @@ def tune_svm(X, y, param_grid: dict, cv: int = 2) -> svm.SVC:
         y (any): data labels
         param_grid (dict): dictionary of parameters to tune for SVM using GridSearchCV
         cv (int, optional): number of cross-validation folds. Defaults to 2.
-        modelDir (str, optional): output directory for models. Defaults to "models/".
-        modelName (str, optional): name of fine-tuned model. Defaults to "tunedSVM".
 
     Returns:
         best_model: best performing SVM classifier model from GridSearchCV
@@ -183,3 +181,4 @@ def train_model_callbacks(model: keras.models.Model, X, y, optimizer: tf.keras.o
                 validation_split=validation_split,
                 verbose=verbose
             )
+    
