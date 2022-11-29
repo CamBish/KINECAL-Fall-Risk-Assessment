@@ -50,18 +50,15 @@ def tune_xgboost(X, y, param_grid: dict, cv: int = 2, verbose: int = 1) -> xgb.X
     """
     #create XGBoost model for tuning
     xgb_model = xgb.XGBClassifier(tree_method="gpu_hist",validate_parameters=True, n_jobs=cpu_count())
-    
+
     grid = GridSearchCV(xgb_model, param_grid=param_grid, cv=cv, verbose=verbose, return_train_score=True)
     grid.fit(X, y)
-    
+
     # Print the best parameters and score
-    print("Best parameters: " + str(grid.best_params_))
-    print("Best score: " + str(grid.best_score_))
-    
-    # Save the best model
-    best_model = grid.best_estimator_
-    
-    return best_model
+    print(f"Best parameters: {str(grid.best_params_)}")
+    print(f"Best score: {str(grid.best_score_)}")
+
+    return grid.best_estimator_
     
 
 def train_svm(X, y, params: dict) -> svm.SVC:
@@ -105,18 +102,15 @@ def tune_svm(X, y, param_grid: dict, cv: int = 2) -> svm.SVC:
     """  
     #create SVM model for tuning
     svm_model = svm.SVC()
-    
+
     grid = GridSearchCV(svm_model, param_grid=param_grid, cv=cv, verbose=1, return_train_score=True)
     grid.fit(X, y)
-    
+
     # Print the best parameters and score
-    print("Best parameters: " + str(grid.best_params_))
-    print("Best score: " + str(grid.best_score_))
-    
-    # Save the best model
-    best_model = grid.best_estimator_
-    
-    return best_model
+    print(f"Best parameters: {str(grid.best_params_)}")
+    print(f"Best score: {str(grid.best_score_)}")
+
+    return grid.best_estimator_
 
 def generate_deep_model(input_shape: int, output_shape: int, 
                         model_width:int = 128, hid_act_fxn: str = "relu", 
@@ -158,11 +152,14 @@ def generate_deep_model(input_shape: int, output_shape: int,
     
     return model
 
-def train_model_callbacks(model: keras.models.Model, X, y, optimizer: tf.keras.optimizers = tf.keras.optimizers.Adam(), 
-                          lr: float = 0.5, loss: str = "binary_crossentropy", metrics: list = ["accuracy"], 
+def train_model_callbacks(model: keras.models.Model, X, y, 
+                          optimizer: tf.keras.optimizers = tf.keras.optimizers.Adam(), 
+                          lr: float = 0.5, loss: str = "binary_crossentropy", metrics: list = None, 
                           epochs: int = 10, batch_size: int = 32, validation_split: float = 0.2, 
                           verbose: int = 1, monitor: str = 'val_loss') -> keras.models.Model:
     
+    if metrics is None:
+        metrics = ["accuracy"]
     callbacks = [
         keras.callbacks.ModelCheckpoint(
             "best_model.h5", save_best_only=True, monitor=monitor
@@ -172,9 +169,9 @@ def train_model_callbacks(model: keras.models.Model, X, y, optimizer: tf.keras.o
         ),
         keras.callbacks.EarlyStopping(monitor="val_loss", patience=50, verbose=1),
     ]
-    
+
     model.compile(optimizer=optimizer(learning_rate=lr), loss=loss, metrics=metrics)
-    
+
     model.fit(X, y, epochs=epochs, 
                 batch_size=batch_size, 
                 callbacks=callbacks,
