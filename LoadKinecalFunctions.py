@@ -18,7 +18,7 @@ def readKinecalFiles (exercise, user):
     if(user == User.L): #Leonard is user
         dataDir = 'D:/kinecal-1.0.1/kinecal-1.0.1/'
     elif(user == User.CD): #Cam-DESKTOP is user
-        dataDir = 'D:/kinecal-1.0.1/'
+        dataDir = 'F:/kinecal-1.0.1/'
     elif(user == User.CL): #Cam-Laptop is user
         dataDir = 'D:/kinecal-1.0.1/'
     elif(user == User.CS): #Cam-Server is user
