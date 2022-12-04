@@ -1,11 +1,4 @@
 import xgboost as xgb
-import tensorflow as tf
-
-import keras.layers.activation
-from keras.models import Model
-from keras.layers import Dense, Dropout, Activation, Input
-import keras
-
 from sklearn.model_selection import GridSearchCV
 from sklearn import svm
 from multiprocessing import cpu_count
@@ -79,11 +72,6 @@ def train_svm(X, y, params: dict) -> svm.SVC:
     print("Training SVM model...")
     
     svc.fit(X, y)
-
-    #Optional Additional parameters
-    #   eval_set=[(X_train, y_train), (X_vali, y_vali)], 
-    #   eval_metric=eval, 
-    #   verbose=True
     
     return svc
 
@@ -111,71 +99,3 @@ def tune_svm(X, y, param_grid: dict, cv: int = 2) -> svm.SVC:
     print(f"Best score: {str(grid.best_score_)}")
 
     return grid.best_estimator_
-
-def generate_deep_model(input_shape: int, output_shape: int, 
-                        model_width:int = 128, hid_act_fxn: str = "relu", 
-                        final_act_fxn: str = "sigmoid", summary: bool = True) -> tf.keras.Model:
-    """Generate deep neural network model for classification.
-
-    Args:
-        input_shape (int): number of features in input data
-        output_shape (int): number of classes in output data
-        model_width (int, optional): Model width parameter. Defaults to 128.
-        inner_act_fxn (str, optional): Activation function for hidden layers. Defaults to "relu".
-        final_act_fxn (str, optional): Activation function for output layer. Defaults to "sigmoid".
-        summary (bool, optional): Turn on model summary. Defaults to True.
-
-    Returns:
-        tf.keras.Model: deep neural network model for classification
-    """       
-    
-    ip = Input(shape=input_shape)
-    
-    x = Dense(model_width)(ip)
-    
-    x = Activation(hid_act_fxn)(x)
-    
-    x = Dense(model_width)(x)
-    
-    x = Activation(hid_act_fxn)(x)
-    
-    x = Dense(model_width)(x)
-    
-    x = Activation(hid_act_fxn)(x)
-    
-    out = Dense(output_shape, activation=final_act_fxn)(x)
-    
-    model = Model(ip, out)
-    
-    if summary:
-        model.summary()
-    
-    return model
-
-def train_model_callbacks(model: keras.models.Model, X, y, 
-                          optimizer: tf.keras.optimizers = tf.keras.optimizers.Adam(), 
-                          lr: float = 0.5, loss: str = "binary_crossentropy", metrics: list = None, 
-                          epochs: int = 10, batch_size: int = 32, validation_split: float = 0.2, 
-                          verbose: int = 1, monitor: str = 'val_loss') -> keras.models.Model:
-    
-    if metrics is None:
-        metrics = ["accuracy"]
-    callbacks = [
-        keras.callbacks.ModelCheckpoint(
-            "best_model.h5", save_best_only=True, monitor=monitor
-        ),
-        keras.callbacks.ReduceLROnPlateau(
-            monitor=monitor, factor=0.5, patience=20, min_lr=1e-6
-        ),
-        keras.callbacks.EarlyStopping(monitor="val_loss", patience=50, verbose=1),
-    ]
-
-    model.compile(optimizer=optimizer(learning_rate=lr), loss=loss, metrics=metrics)
-
-    model.fit(X, y, epochs=epochs, 
-                batch_size=batch_size, 
-                callbacks=callbacks,
-                validation_split=validation_split,
-                verbose=verbose
-            )
-    
