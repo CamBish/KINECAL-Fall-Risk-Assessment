@@ -22,7 +22,7 @@ def tune_svm(X, y,  param_grid: dict, isMulticlass: bool = False, cv: int = 2) -
     #create SVM model for tuning
     svm_model = svm.SVC()
     if isMulticlass:
-        grid = GridSearchCV(svm_model, scoring='f1_weighted',param_grid=param_grid, cv=cv, verbose=1, return_train_score=True)
+        grid = GridSearchCV(svm_model, scoring='f1_macro',param_grid=param_grid, cv=cv, verbose=1, return_train_score=True)
     else:
         grid = GridSearchCV(svm_model, scoring='roc_auc', param_grid=param_grid, cv=cv, verbose=1, return_train_score=True)
     
@@ -54,7 +54,7 @@ def hyperopt_multiclass(param_space: any, xTrain: any, yTrain: any, xTest: any, 
     def objective(param_space):
         clf = xgb.XGBClassifier(**param_space)
         skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-        score = cross_val_score(clf, xTrain, yTrain, cv=skf, scoring='f1_weighted').mean()
+        score = cross_val_score(clf, xTrain, yTrain, cv=skf, scoring='f1_macro').mean()
         return {'loss': -score, 'status': STATUS_OK}
     
     trials = Trials()
@@ -77,7 +77,7 @@ def hyperopt_multiclass(param_space: any, xTrain: any, yTrain: any, xTest: any, 
     print('Best parameters: ', best_param)
     print('Best loss: ', -np.min(loss))
     print('Time taken: ', time.time() - start)
-    print('Test accuracy: ', f1_score(yTest, best_clf.predict(xTest), average='weighted'))
+    print('Test accuracy: ', f1_score(yTest, best_clf.predict(xTest), average='macro'))
     print('Parameter combinations evaluated: ', len(trials.trials))
     return best_clf, best_param
 
@@ -124,6 +124,6 @@ def hyperopt_binary(param_space: any, xTrain: any, yTrain: any, xTest: any, yTes
     print('Best parameters: ', best_param)
     print('Best loss: ', -np.min(loss))
     print('Time taken: ', time.time() - start)
-    print('Test accuracy: ', roc_auc_score(yTest, best_clf.predict(xTest), average='weighted'))
+    print('Test accuracy: ', roc_auc_score(yTest, best_clf.predict(xTest)))
     print('Parameter combinations evaluated: ', len(trials.trials))
     return best_clf, best_param
